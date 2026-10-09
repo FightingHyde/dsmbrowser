@@ -1,0 +1,4 @@
+#!/bin/bash
+/var/packages/DSMBrowser/target/scripts/start-stop-status stop 2>/dev/null || true
+rm -f /usr/syno/synoman/webman/3rdparty/DSMBrowser
+exit 0

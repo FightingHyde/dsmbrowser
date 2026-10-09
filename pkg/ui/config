@@ -1,0 +1,27 @@
+{
+  "DSMBrowser.js": {
+    "SYNO.SDS.DSMBrowser.Application": {
+      "type": "app",
+      "title": "DSM Browser",
+      "appWindow": "SYNO.SDS.DSMBrowser.MainWindow",
+      "desc": "Chromium running on the NAS",
+      "icon": "images/icon_{0}.png",
+      "allowMultiInstance": false,
+      "allowStandalone": true,
+      "allowSharing": true,
+      "allUsers": true,
+      "grantPrivilege": "all",
+      "advanceGrantPrivilege": true,
+      "texts": "texts",
+      "depend": ["SYNO.SDS.DSMBrowser.MainWindow"]
+    },
+    "SYNO.SDS.DSMBrowser.MainWindow": {
+      "type": "lib",
+      "title": "DSM Browser",
+      "icon": "images/icon_{0}.png",
+      "texts": "texts",
+      "depend": ["SYNO.SDS.DSMBrowser.Utils"]
+    },
+    "SYNO.SDS.DSMBrowser.Utils": []
+  }
+}

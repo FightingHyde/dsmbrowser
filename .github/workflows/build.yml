@@ -1,0 +1,87 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "version string (default 0.0.0-ci)"
+        required: false
+        default: "0.0.0-ci"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "v=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "v=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "v=0.0.0-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Host tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq patchelf file curl python3 dpkg
+
+      - name: Cache Debian debs
+        uses: actions/cache@v4
+        with:
+          path: .work/debs
+          key: debs-${{ hashFiles('build.sh') }}
+          restore-keys: debs-
+
+      - name: Build
+        env:
+          PKG_VERSION: ${{ steps.ver.outputs.v }}
+          REUSE_DEBS: "1"
+        run: |
+          chmod +x build.sh tools/make_icons.py
+          ./build.sh
+
+      - name: Verify + checksum
+        id: verify
+        run: |
+          spk=$(ls dist/*.spk)
+          tar -tzf "$spk" | grep -qx INFO
+          tar -tzf "$spk" | grep -qx package.tgz
+          tar -xzf "$spk" -C /tmp package.tgz
+          tar -tzf /tmp/package.tgz | grep -q '^./bin/usr/bin/chromium$'
+          sha256sum "$spk" | tee "$spk.sha256"
+          echo "spk=$spk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSMBrowser-spk
+          path: |
+            dist/*.spk
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.spk
+            dist/*.sha256
+          generate_release_notes: true

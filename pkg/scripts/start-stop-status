@@ -1,0 +1,37 @@
+#!/bin/bash
+PKG=DSMBrowser
+T=/var/packages/$PKG/target
+V=/var/packages/$PKG/var
+. "$T/etc/dsbrowser.conf"
+
+export HOME="$V"
+export XDG_DATA_HOME="$V/.local/share"
+export XDG_CONFIG_HOME="$V/.config"
+export XDG_CACHE_HOME="$V/.cache"
+export FONTCONFIG_PATH="$T/bin/etc/fonts"
+export LD_LIBRARY_PATH="$T/bin/usr/lib/x86_64-linux-gnu:$T/bin/lib/x86_64-linux-gnu"
+export PATH="$T/bin/usr/bin:$PATH"
+mkdir -p "$HOME" "$V/chromium"
+
+B="$T/bin/usr/bin"
+
+case "$1" in
+  start)
+    "$B/Xvfb" "$DISP" -screen 0 "${GEOM}x24" -nolisten tcp &
+    sleep 1
+    "$B/x11vnc" -display "$DISP" -rfbport "$VNC_PORT" -forever -shared -nopw -localhost &
+    "$B/python3" "$B/websockify" "$WS_PORT" "localhost:$VNC_PORT" &
+    DISPLAY="$DISP" "$B/chromium" \
+        --no-sandbox --kiosk --no-first-run --no-default-browser-check \
+        --user-data-dir="$V/chromium" --window-size="$GEOM" "$START_URL" &
+    ;;
+  stop)
+    pkill -f "$T/bin/usr/bin/chromium"  2>/dev/null || true
+    pkill -f "$T/bin/usr/bin/websockify" 2>/dev/null || true
+    pkill -f "$T/bin/usr/bin/x11vnc"    2>/dev/null || true
+    pkill -f "$T/bin/usr/bin/Xvfb"      2>/dev/null || true
+    ;;
+  status)
+    pgrep -f "$T/bin/usr/bin/Xvfb" >/dev/null && exit 0 || exit 1
+    ;;
+esac

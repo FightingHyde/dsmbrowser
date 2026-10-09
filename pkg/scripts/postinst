@@ -1,0 +1,6 @@
+#!/bin/bash
+PKG=DSMBrowser
+mkdir -p /usr/syno/synoman/webman/3rdparty
+[ -e /usr/syno/synoman/webman/3rdparty/$PKG ] || \
+  ln -s /var/packages/$PKG/target/web /usr/syno/synoman/webman/3rdparty/$PKG
+exit 0

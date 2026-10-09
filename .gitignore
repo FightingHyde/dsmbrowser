@@ -1,0 +1,5 @@
+.work/
+dist/
+pkg/package.tgz
+pkg/web/novnc/
+pkg/ui/images/

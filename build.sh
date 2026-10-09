@@ -92,7 +92,7 @@ cp -a "$WORK/noVNC-${NOVNC_VER#v}/." "$HERE/pkg/web/novnc/"
 # ---- 5. icons ----
 echo ">> icons"
 rm -rf "$HERE/pkg/ui/images"
-python3 "$HERE/tools/make_icons.py" "$HERE/pkg/ui/images"
+python3 "$HERE/tools/make_icons.py" "$HERE/pkg/ui/images" "$HERE/pkg"
 
 # ---- 6. stamp version, pack ----
 echo "$VER" | grep -Eq '^[0-9]+(\.[0-9]+)*(-[0-9]+)?$' || { echo "bad version: $VER"; exit 1; }

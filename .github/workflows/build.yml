@@ -67,6 +67,10 @@ jobs:
           tar -tzf "$spk" | grep -qx package.tgz
           tar -xzf "$spk" -C /tmp package.tgz
           tar -tzf /tmp/package.tgz | grep -q '^./bin/usr/bin/chromium$'
+          tar -tzf "$spk" | grep -qx PACKAGE_ICON.PNG
+          tar -tzf "$spk" | grep -qx PACKAGE_ICON_256.PNG
+          mkdir -p /tmp/info && tar -xzf "$spk" -C /tmp/info INFO
+          grep -Eq '^version="[0-9]+(\.[0-9]+)*(-[0-9]+)?"' /tmp/info/INFO
           sha256sum "$spk" | tee "$spk.sha256"
           echo "spk=$spk" >> "$GITHUB_OUTPUT"
 

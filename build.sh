@@ -105,7 +105,9 @@ cp -a "$HERE/pkg/web" "$WORK/payload/web"
 tar -czf "$HERE/pkg/package.tgz" -C "$WORK/payload" .
 chmod +x "$HERE/pkg/scripts/"*
 rm -f "$OUT"/*.spk
-( cd "$HERE/pkg" && tar -czf "$OUT/$PKG-$VER.spk" INFO package.tgz conf etc scripts ui )
+( cd "$HERE/pkg" && tar --format=ustar -czf "$OUT/$PKG-$VER.spk" \
+    INFO package.tgz PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG \
+    conf etc scripts ui )
 
 echo
 echo "done -> $OUT/$PKG-$VER.spk ($(du -h "$OUT/$PKG-$VER.spk" | cut -f1))"

@@ -21,4 +21,7 @@ out = sys.argv[1]
 os.makedirs(out, exist_ok=True)
 for s in (16, 24, 32, 48, 64, 72, 128, 256):
     write_png(os.path.join(out, f"icon_{s}.png"), s)
+if len(sys.argv) > 2:
+    write_png(os.path.join(sys.argv[2], "PACKAGE_ICON.PNG"), 72)
+    write_png(os.path.join(sys.argv[2], "PACKAGE_ICON_256.PNG"), 256)
 print("icons written to", out)

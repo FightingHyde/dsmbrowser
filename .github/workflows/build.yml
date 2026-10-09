@@ -29,12 +29,15 @@ jobs:
         id: ver
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "v=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            v="${{ github.event.inputs.version }}"
           elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            echo "v=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+            v="${GITHUB_REF#refs/tags/v}"
           else
-            echo "v=0.0.0-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            v="0.0.0-${GITHUB_RUN_NUMBER}"
           fi
+          v=$(printf '%s' "$v" | tr -cd '0-9.-')
+          [[ "$v" =~ ^[0-9]+(\.[0-9]+)*(-[0-9]+)?$ ]] || { echo "bad version: $v"; exit 1; }
+          echo "v=$v" >> "$GITHUB_OUTPUT"
 
       - name: Host tooling
         run: |

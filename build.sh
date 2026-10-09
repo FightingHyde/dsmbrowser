@@ -36,26 +36,40 @@ mkdir -p "$WORK/debs" "$OUT" "$HERE/pkg/web"
 rm -rf "$ROOT"; mkdir -p "$ROOT"
 
 # ---- 1. debs (cached or fetched) ----
-if [ "${REUSE_DEBS:-0}" = "1" ] && compgen -G "$WORK/debs/*.deb" >/dev/null; then
-  echo ">> reusing $(ls "$WORK"/debs/*.deb | wc -l) cached debs"
+mkdir -p "$WORK/debs"
+count_debs() { find "$WORK/debs" -maxdepth 1 -name '*.deb' | wc -l; }
+
+if [ "${REUSE_DEBS:-0}" = "1" ] && [ "$(count_debs)" -gt 0 ]; then
+  echo ">> reusing $(count_debs) cached debs"
 elif command -v docker >/dev/null 2>&1; then
   echo ">> fetching debs in debian:bookworm"
-  docker run --rm -v "$WORK/debs:/debs" debian:bookworm bash -c "
+  docker run --rm -v "$WORK/debs:/debs" -w /debs debian:bookworm bash -euc '
     apt-get update -qq
-    apt-get install -y -qq --reinstall --download-only \
-      -o Dir::Cache::archives=/debs $PKGS >/dev/null
-    ls /debs/*.deb | wc -l"
+    apt-get download \
+      $(apt-cache depends --recurse --no-recommends --no-suggests \
+          --no-conflicts --no-breaks --no-replaces --no-enhances \
+          '"$PKGS"' | grep "^\w" | sort -u) > /dev/null
+    find /debs -maxdepth 1 -name "*.deb" | wc -l'
 else
   echo ">> fetching debs with local apt"
-  ( cd "$WORK/debs" && apt-get update -qq && \
-    apt-get install -y -qq --reinstall --download-only \
-      -o Dir::Cache::archives="$WORK/debs" $PKGS >/dev/null )
+  SUDO=""; [ "$(id -u)" = 0 ] || SUDO="sudo"
+  ( cd "$WORK/debs" && \
+    $SUDO apt-get update -qq && \
+    $SUDO apt-get download \
+      $(apt-cache depends --recurse --no-recommends --no-suggests \
+          --no-conflicts --no-breaks --no-replaces --no-enhances \
+          $PKGS | grep '^\w' | sort -u) > /dev/null )
 fi
+
+n=$(count_debs)
+[ "$n" -gt 0 ] || { echo "!! fetched 0 debs"; ls -la "$WORK/debs"; exit 1; }
+echo ">> $n debs"
 
 # ---- 2. extract ----
 echo ">> extracting"
-for d in "$WORK"/debs/*.deb; do dpkg-deb -x "$d" "$ROOT"; done
-[ -x "$ROOT/usr/bin/chromium" ] || { echo "no chromium binary"; exit 1; }
+while IFS= read -r -d '' d; do dpkg-deb -x "$d" "$ROOT"; done \
+  < <(find "$WORK/debs" -maxdepth 1 -name '*.deb' -print0)
+[ -x "$ROOT/usr/bin/chromium" ] || { echo "no chromium binary in $ROOT"; exit 1; }
 
 # ---- 3. rebase loader + rpath ----
 echo ">> patchelf"

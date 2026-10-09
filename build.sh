@@ -95,7 +95,8 @@ rm -rf "$HERE/pkg/ui/images"
 python3 "$HERE/tools/make_icons.py" "$HERE/pkg/ui/images"
 
 # ---- 6. stamp version, pack ----
-sed -i "s/^version=.*/version=\"$VER-0001\"/" "$HERE/pkg/INFO"
+echo "$VER" | grep -Eq '^[0-9]+(\.[0-9]+)*(-[0-9]+)?$' || { echo "bad version: $VER"; exit 1; }
+sed -i "s/^version=.*/version=\"$VER\"/" "$HERE/pkg/INFO"
 
 echo ">> packing"
 rm -rf "$WORK/payload"; mkdir -p "$WORK/payload"

@@ -3,3 +3,5 @@ dist/
 pkg/package.tgz
 pkg/web/novnc/
 pkg/ui/images/
+pkg/PACKAGE_ICON.PNG
+pkg/PACKAGE_ICON_256.PNG

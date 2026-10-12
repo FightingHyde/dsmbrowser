@@ -96,6 +96,7 @@ python3 "$HERE/tools/make_icons.py" "$HERE/pkg/ui/images" "$HERE/pkg"
 
 # ---- 6. stamp version, pack ----
 echo "$VER" | grep -Eq '^[0-9]+(\.[0-9]+)*(-[0-9]+)?$' || { echo "bad version: $VER"; exit 1; }
+sed -i '/^extractsize=/d' "$HERE/pkg/INFO"
 sed -i "s/^version=.*/version=\"$VER\"/" "$HERE/pkg/INFO"
 
 echo ">> packing"
@@ -103,11 +104,14 @@ rm -rf "$WORK/payload"; mkdir -p "$WORK/payload"
 cp -a "$ROOT" "$WORK/payload/bin"
 cp -a "$HERE/pkg/web" "$WORK/payload/web"
 tar -czf "$HERE/pkg/package.tgz" -C "$WORK/payload" .
+echo "extractsize=$(du -sk "$WORK/payload" | awk '{print $1}')" >> "$HERE/pkg/INFO"
 chmod +x "$HERE/pkg/scripts/"*
 rm -f "$OUT"/*.spk
-( cd "$HERE/pkg" && tar --format=ustar -czf "$OUT/$PKG-$VER.spk" \
-    INFO package.tgz PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG \
-    conf etc scripts ui )
 
+# DSM's pkg_make_spk uses a PLAIN (uncompressed) tar for the outer .spk.
+# A gzipped .spk is rejected with "Invalid file format."
+( cd "$HERE/pkg" && tar --format=ustar -cf "$OUT/$PKG-$VER.spk" \
+    INFO PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG \
+    conf etc package.tgz scripts ui )
 echo
 echo "done -> $OUT/$PKG-$VER.spk ($(du -h "$OUT/$PKG-$VER.spk" | cut -f1))"

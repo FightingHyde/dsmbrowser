@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
- - name: Resolve version
+      - name: Resolve version
         id: ver
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then

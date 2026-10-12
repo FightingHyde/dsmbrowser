@@ -17,7 +17,7 @@ export XDG_RUNTIME_DIR="$V/run"
 export FONTCONFIG_PATH="$T/bin/etc/fonts"
 export XKB_BINDIR="$T/bin/usr/bin"
 export LD_LIBRARY_PATH="$T/bin/usr/lib/x86_64-linux-gnu:$T/bin/lib/x86_64-linux-gnu"
-export PATH="$T/bin/usr/bin:$PATH"
+export PATH="$PATH:$T/bin/usr/bin"
 mkdir -p "$HOME" "$V/chromium" "$V/run"; chmod 700 "$V/run"
 
 B="$T/bin/usr/bin"

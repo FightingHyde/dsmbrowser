@@ -2,7 +2,12 @@
 PKG=DSMBrowser
 T=/var/packages/$PKG/target
 V=/var/packages/$PKG/var
-. "$T/etc/dsbrowser.conf"
+LOG="$V/dsbrowser.log"
+mkdir -p "$V"
+echo "=== $1 $(date) uid=$(id -u) ===" >> "$LOG"
+
+if [ -r "$T/etc/dsbrowser.conf" ]; then . "$T/etc/dsbrowser.conf"
+else echo "!! missing $T/etc/dsbrowser.conf" >> "$LOG"; DISP=":99"; GEOM="1600x900"; START_URL="about:blank"; VNC_PORT=5900; WS_PORT=6080; fi
 
 export HOME="$V"
 export XDG_DATA_HOME="$V/.local/share"
@@ -10,35 +15,43 @@ export XDG_CONFIG_HOME="$V/.config"
 export XDG_CACHE_HOME="$V/.cache"
 export XDG_RUNTIME_DIR="$V/run"
 export FONTCONFIG_PATH="$T/bin/etc/fonts"
+export XKB_BINDIR="$T/bin/usr/bin"
 export LD_LIBRARY_PATH="$T/bin/usr/lib/x86_64-linux-gnu:$T/bin/lib/x86_64-linux-gnu"
 export PATH="$T/bin/usr/bin:$PATH"
-mkdir -p "$HOME" "$V/chromium" "$V/run"
-chmod 700 "$V/run"
-mkdir -p /tmp/.X11-unix 2>/dev/null || true
+mkdir -p "$HOME" "$V/chromium" "$V/run"; chmod 700 "$V/run"
 
 B="$T/bin/usr/bin"
-LOG="$V/dsbrowser.log"
+CHROME="$T/bin/usr/lib/chromium/chromium"
 
 case "$1" in
   start)
-    echo "=== start $(date) ===" >> "$LOG"
-    "$B/Xvfb" "$DISP" -screen 0 "${GEOM}x24" -nolisten tcp >> "$LOG" 2>&1 &
-    sleep 2
+    "$B/Xvfb" "$DISP" -screen 0 "${GEOM}x24" \
+        -nolisten tcp -nolisten unix -ac \
+        -xkbdir "$T/bin/usr/share/X11/xkb" \
+        -fp "$T/bin/usr/share/fonts/X11/misc,built-ins" \
+        >> "$LOG" 2>&1 &
+    sleep 3
+    pgrep -f "$B/Xvfb" >/dev/null || { echo "!! Xvfb died, see above" >> "$LOG"; exit 1; }
+
     "$B/x11vnc" -display "$DISP" -rfbport "$VNC_PORT" -forever -shared -nopw -localhost \
         >> "$LOG" 2>&1 &
     "$B/python3" "$B/websockify" "$WS_PORT" "localhost:$VNC_PORT" >> "$LOG" 2>&1 &
-    DISPLAY="$DISP" "$B/chromium" \
+    sleep 1
+    DISPLAY="$DISP" "$CHROME" \
         --no-sandbox --kiosk --no-first-run --no-default-browser-check \
-        --disable-dev-shm-usage --user-data-dir="$V/chromium" \
-        --window-size="$GEOM" "$START_URL" >> "$LOG" 2>&1 &
+        --disable-dev-shm-usage --disable-gpu \
+        --user-data-dir="$V/chromium" --window-size="$GEOM" "$START_URL" \
+        >> "$LOG" 2>&1 &
+    sleep 3
+    echo "-- running: $(pgrep -fl 'Xvfb|x11vnc|websockify|chromium' | wc -l) procs" >> "$LOG"
     ;;
   stop)
-    pkill -f "$T/bin/usr/bin/chromium"   2>/dev/null || true
-    pkill -f "$T/bin/usr/bin/websockify" 2>/dev/null || true
-    pkill -f "$T/bin/usr/bin/x11vnc"     2>/dev/null || true
-    pkill -f "$T/bin/usr/bin/Xvfb"       2>/dev/null || true
+    pkill -f "$CHROME"             2>/dev/null || true
+    pkill -f "$B/websockify"       2>/dev/null || true
+    pkill -f "$B/x11vnc"           2>/dev/null || true
+    pkill -f "$B/Xvfb"             2>/dev/null || true
     ;;
   status)
-    pgrep -f "$T/bin/usr/bin/Xvfb" >/dev/null && exit 0 || exit 1
+    pgrep -f "$B/Xvfb" >/dev/null && exit 0 || exit 1
     ;;
 esac

@@ -1,6 +1,14 @@
 .work/
 dist/
 pkg/package.tgz
+
+if tar -tf "$spk" | grep -qE '^(ui|etc|web)/'; then
+            echo "ERROR: stray root dir in spk"; exit 1
+          fi
+          tar -tzf /tmp/package.tgz | grep -q '^./ui/config$'
+          tar -tzf /tmp/package.tgz | grep -q '^./ui/novnc/vnc.html$'
+          tar -tzf /tmp/package.tgz | grep -q '^./etc/dsbrowser.conf$'
+
 pkg/web/novnc/
 pkg/ui/images/
 pkg/PACKAGE_ICON.PNG

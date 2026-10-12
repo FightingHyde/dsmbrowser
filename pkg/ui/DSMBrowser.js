@@ -5,10 +5,11 @@ Ext.apply(SYNO.SDS.DSMBrowser.Utils, function () {
         getMainHtml: function () {
             // served same-origin from /webman/3rdparty/DSMBrowser/ -> no framing/cert issues
             return '<iframe src="webman/3rdparty/DSMBrowser/novnc/vnc.html'
-                 + '?autoconnect=1&reconnect=1&resize=scale&path=ws&_ts='
-                 + new Date().getTime() + '" title="chromium" '
+                 + '?autoconnect=1&reconnect=1&resize=scale'
+                 + '&host=' + window.location.hostname
+                 + '&port=6081&path=websockify'
+                 + '&_ts=' + new Date().getTime() + '" title="chromium" '
                  + 'style="width:100%;height:100%;border:none;margin:0"/>';
-        }
     };
 }());
 

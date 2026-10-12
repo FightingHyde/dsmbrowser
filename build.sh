@@ -9,7 +9,6 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 WORK="$HERE/.work"
 OUT="$HERE/dist"
 ROOT="$WORK/root"
-LOADER="$TARGET/bin/lib64/ld-linux-x86-64.so.2"
 RPATH="$TARGET/bin/usr/lib/x86_64-linux-gnu:$TARGET/bin/lib/x86_64-linux-gnu"
 
 PKGS="chromium xvfb x11vnc websockify python3-minimal noVNC \
@@ -72,7 +71,21 @@ while IFS= read -r -d '' d; do dpkg-deb -x "$d" "$ROOT"; done \
   < <(find "$WORK/debs" -maxdepth 1 -name '*.deb' -print0)
 [ -x "$ROOT/usr/bin/chromium" ] || { echo "no chromium binary in $ROOT"; exit 1; }
 
-# ---- 3. rebase loader + rpath ----
+# ---- 3. make the bundle self-contained ----
+echo ">> fixing absolute symlinks"
+while IFS= read -r -d '' l; do
+  tgt=$(readlink "$l")
+  case "$tgt" in
+    /*) if [ -e "$ROOT$tgt" ]; then ln -sfr "$ROOT$tgt" "$l"; fi ;;
+  esac
+done < <(find "$ROOT" -type l -print0)
+
+echo ">> locating real dynamic loader"
+LD_REAL=$(find "$ROOT" -type f -name 'ld-linux-x86-64.so.2' | head -n1)
+[ -n "$LD_REAL" ] || { echo "!! no ld-linux-x86-64.so.2 in bundle"; exit 1; }
+LOADER="$TARGET/bin/${LD_REAL#$ROOT/}"
+echo "   loader -> $LOADER"
+
 echo ">> patchelf"
 find "$ROOT" -type f \( -name '*.so' -o -name '*.so.*' -o -perm -u+x \) -print0 |
 while IFS= read -r -d '' f; do

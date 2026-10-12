@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "version string (default 0.0.0-ci)"
+        description: "version string (default 0.0.0-1)"
         required: false
         default: "0.0.0-ci"
 
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Resolve version
+ - name: Resolve version
         id: ver
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -35,8 +35,11 @@ jobs:
           else
             v="0.0.0-${GITHUB_RUN_NUMBER}"
           fi
-          v=$(printf '%s' "$v" | tr -cd '0-9.-')
-          [[ "$v" =~ ^[0-9]+(\.[0-9]+)*(-[0-9]+)?$ ]] || { echo "bad version: $v"; exit 1; }
+          v=$(printf '%s' "$v" | tr -cd '0-9.-' | sed -E 's/^[.-]+//; s/[.-]+$//')
+          if ! [[ "$v" =~ ^[0-9]+(\.[0-9]+)*(-[0-9]+)?$ ]]; then
+            echo "::warning::bad version '$v' -> using 0.0.0-${GITHUB_RUN_NUMBER}"
+            v="0.0.0-${GITHUB_RUN_NUMBER}"
+          fi
           echo "v=$v" >> "$GITHUB_OUTPUT"
 
       - name: Host tooling

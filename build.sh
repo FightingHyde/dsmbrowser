@@ -32,7 +32,7 @@ if ! command -v patchelf >/dev/null 2>&1; then
   $SUDO apt-get update -qq && $SUDO apt-get install -y -qq patchelf
 fi
 
-mkdir -p "$WORK/debs" "$OUT" "$HERE/pkg/web"
+mkdir -p "$WORK/debs" "$OUT"
 rm -rf "$ROOT"; mkdir -p "$ROOT"
 
 # ---- 1. debs (cached or fetched) ----
@@ -81,13 +81,13 @@ while IFS= read -r -d '' f; do
     patchelf --set-interpreter "$LOADER" "$f" 2>/dev/null || true
 done
 
-# ---- 4. noVNC ----
+# ---- 4. noVNC (under ui/ so DSM serves it at /webman/3rdparty/DSMBrowser/novnc/) ----
 echo ">> noVNC $NOVNC_VER"
 curl -fsSL "https://github.com/novnc/noVNC/archive/refs/tags/$NOVNC_VER.tar.gz" -o "$WORK/novnc.tgz"
-rm -rf "$WORK/noVNC-${NOVNC_VER#v}" "$HERE/pkg/web/novnc"
+rm -rf "$WORK/noVNC-${NOVNC_VER#v}" "$HERE/pkg/ui/novnc"
 tar -xzf "$WORK/novnc.tgz" -C "$WORK"
-mkdir -p "$HERE/pkg/web/novnc"
-cp -a "$WORK/noVNC-${NOVNC_VER#v}/." "$HERE/pkg/web/novnc/"
+mkdir -p "$HERE/pkg/ui/novnc"
+cp -a "$WORK/noVNC-${NOVNC_VER#v}/." "$HERE/pkg/ui/novnc/"
 
 # ---- 5. icons ----
 echo ">> icons"
@@ -101,17 +101,16 @@ sed -i "s/^version=.*/version=\"$VER\"/" "$HERE/pkg/INFO"
 
 echo ">> packing"
 rm -rf "$WORK/payload"; mkdir -p "$WORK/payload"
-cp -a "$ROOT" "$WORK/payload/bin"
-cp -a "$HERE/pkg/web" "$WORK/payload/web"
+cp -a "$ROOT"         "$WORK/payload/bin"
+cp -a "$HERE/pkg/ui"  "$WORK/payload/ui"     # dsmuidir -> target/ui
+cp -a "$HERE/pkg/etc" "$WORK/payload/etc"    # target/etc/dsbrowser.conf
 tar -czf "$HERE/pkg/package.tgz" -C "$WORK/payload" .
 echo "extractsize=$(du -sk "$WORK/payload" | awk '{print $1}')" >> "$HERE/pkg/INFO"
 chmod +x "$HERE/pkg/scripts/"*
 rm -f "$OUT"/*.spk
 
-# DSM's pkg_make_spk uses a PLAIN (uncompressed) tar for the outer .spk.
-# A gzipped .spk is rejected with "Invalid file format."
+# SPK root = exactly what Synology's pkg_make_spk ships. Plain tar, INFO first.
 ( cd "$HERE/pkg" && tar --format=ustar -cf "$OUT/$PKG-$VER.spk" \
-    INFO PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG \
-    conf etc package.tgz scripts ui )
+    INFO PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG conf package.tgz scripts )
 echo
 echo "done -> $OUT/$PKG-$VER.spk ($(du -h "$OUT/$PKG-$VER.spk" | cut -f1))"

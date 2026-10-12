@@ -8,28 +8,35 @@ export HOME="$V"
 export XDG_DATA_HOME="$V/.local/share"
 export XDG_CONFIG_HOME="$V/.config"
 export XDG_CACHE_HOME="$V/.cache"
+export XDG_RUNTIME_DIR="$V/run"
 export FONTCONFIG_PATH="$T/bin/etc/fonts"
 export LD_LIBRARY_PATH="$T/bin/usr/lib/x86_64-linux-gnu:$T/bin/lib/x86_64-linux-gnu"
 export PATH="$T/bin/usr/bin:$PATH"
-mkdir -p "$HOME" "$V/chromium"
+mkdir -p "$HOME" "$V/chromium" "$V/run"
+chmod 700 "$V/run"
+mkdir -p /tmp/.X11-unix 2>/dev/null || true
 
 B="$T/bin/usr/bin"
+LOG="$V/dsbrowser.log"
 
 case "$1" in
   start)
-    "$B/Xvfb" "$DISP" -screen 0 "${GEOM}x24" -nolisten tcp &
-    sleep 1
-    "$B/x11vnc" -display "$DISP" -rfbport "$VNC_PORT" -forever -shared -nopw -localhost &
-    "$B/python3" "$B/websockify" "$WS_PORT" "localhost:$VNC_PORT" &
+    echo "=== start $(date) ===" >> "$LOG"
+    "$B/Xvfb" "$DISP" -screen 0 "${GEOM}x24" -nolisten tcp >> "$LOG" 2>&1 &
+    sleep 2
+    "$B/x11vnc" -display "$DISP" -rfbport "$VNC_PORT" -forever -shared -nopw -localhost \
+        >> "$LOG" 2>&1 &
+    "$B/python3" "$B/websockify" "$WS_PORT" "localhost:$VNC_PORT" >> "$LOG" 2>&1 &
     DISPLAY="$DISP" "$B/chromium" \
         --no-sandbox --kiosk --no-first-run --no-default-browser-check \
-        --user-data-dir="$V/chromium" --window-size="$GEOM" "$START_URL" &
+        --disable-dev-shm-usage --user-data-dir="$V/chromium" \
+        --window-size="$GEOM" "$START_URL" >> "$LOG" 2>&1 &
     ;;
   stop)
-    pkill -f "$T/bin/usr/bin/chromium"  2>/dev/null || true
+    pkill -f "$T/bin/usr/bin/chromium"   2>/dev/null || true
     pkill -f "$T/bin/usr/bin/websockify" 2>/dev/null || true
-    pkill -f "$T/bin/usr/bin/x11vnc"    2>/dev/null || true
-    pkill -f "$T/bin/usr/bin/Xvfb"      2>/dev/null || true
+    pkill -f "$T/bin/usr/bin/x11vnc"     2>/dev/null || true
+    pkill -f "$T/bin/usr/bin/Xvfb"       2>/dev/null || true
     ;;
   status)
     pgrep -f "$T/bin/usr/bin/Xvfb" >/dev/null && exit 0 || exit 1

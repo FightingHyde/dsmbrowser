@@ -19,8 +19,8 @@ PKGS="chromium xvfb x11vnc websockify python3-minimal noVNC \
  libcairo2 libexpat1 libxfixes3 libxext6 libxrender1 libxshmfence1 \
  libxcursor1 libxi6 libxtst6 libsm6 libice6 libxss1 libglib2.0-0 \
  libdbus-1-3 libsystemd0 libselinux1 libudev1 libnspr4 libfontconfig1 \
- libfreetype6 libavahi-client3 libavahi-common3"
- xkb-data x11-xkb-utils xfonts-base
+ libfreetype6 libavahi-client3 libavahi-common3
+ xkb-data x11-xkb-utils xfonts-base"
 
 echo ">> $PKG $VER"
 

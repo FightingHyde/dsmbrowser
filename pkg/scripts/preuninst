@@ -1,2 +1,3 @@
 #!/bin/bash
+/var/packages/DSMBrowser/scripts/start-stop-status stop 2>/dev/null || true
 exit 0
